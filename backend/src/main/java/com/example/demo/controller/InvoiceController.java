@@ -21,6 +21,22 @@ public class InvoiceController {
 
     private final InvoiceService invoiceService;
     private final DataInitializer dataInitializer;
+    private final com.example.demo.repository.DailyRevenueAuditRepository revenueAuditRepository;
+
+    @GetMapping("/revenue-audits")
+    public ResponseEntity<List<DailyRevenueAudit>> getRevenueAudits() {
+        return ResponseEntity.ok(revenueAuditRepository.findAllByOrderByAuditDateDesc());
+    }
+
+    @PostMapping("/revenue-audits/{id}/sync")
+    public ResponseEntity<DailyRevenueAudit> syncRevenueAudit(@PathVariable Long id) {
+        DailyRevenueAudit audit = revenueAuditRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Audit not found"));
+        audit.setIsSyncedToLedger(true);
+        audit.setSyncTransactionId("REV-JE-" + (2000 + audit.getId()));
+        audit.setSyncedAt(java.time.LocalDateTime.now());
+        return ResponseEntity.ok(revenueAuditRepository.save(audit));
+    }
 
     @GetMapping
     public ResponseEntity<List<InvoiceDocument>> getAllInvoices() {

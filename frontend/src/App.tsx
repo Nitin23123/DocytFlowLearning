@@ -6,10 +6,12 @@ import { DetailWorkstation } from './components/DetailWorkstation';
 import { NewInvoiceModal } from './components/NewInvoiceModal';
 import { AccountsModal } from './components/AccountsModal';
 import { JournalModal } from './components/JournalModal';
+import { RevenueAuditView } from './components/RevenueAuditView';
 import { api } from './services/api';
 import type { InvoiceDocument, ChartOfAccount, DashboardStats, JournalEntry } from './types';
 
 export function App() {
+  const [currentView, setCurrentView] = useState<'ap' | 'revenue'>('ap');
   const [invoices, setInvoices] = useState<InvoiceDocument[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [accounts, setAccounts] = useState<ChartOfAccount[]>([]);
@@ -104,6 +106,8 @@ export function App() {
       
       {/* Top Header */}
       <Header
+        currentView={currentView}
+        onSelectView={setCurrentView}
         onOpenUpload={() => setIsUploadOpen(true)}
         onOpenAccounts={() => setIsAccountsOpen(true)}
         onReset={handleReset}
@@ -115,41 +119,47 @@ export function App() {
       {/* Main Container */}
       <div className="flex-1 p-5 max-w-7xl w-full mx-auto flex flex-col overflow-hidden">
         
-        {/* KPI Strip */}
-        <StatsOverview
-          stats={stats}
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-        />
-
-        {/* 2-Pane Split Workstation: Queue on Left, Workstation on Right */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden min-h-0">
-          
-          {/* Left Pane: Queue (5 cols on md, 4 cols on lg) */}
-          <div className="md:col-span-5 lg:col-span-4 h-full overflow-hidden">
-            <QueueList
-              invoices={entityFilteredInvoices}
-              selectedId={selectedInvoice?.id || null}
-              onSelect={setSelectedInvoice}
+        {currentView === 'revenue' ? (
+          <RevenueAuditView />
+        ) : (
+          <>
+            {/* KPI Strip */}
+            <StatsOverview
+              stats={stats}
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
             />
-          </div>
 
-          {/* Right Pane: Detail Workstation (7 cols on md, 8 cols on lg) */}
-          <div className="md:col-span-7 lg:col-span-8 h-full overflow-hidden">
-            <DetailWorkstation
-              invoice={selectedInvoice}
-              accounts={accounts}
-              onInvoiceUpdated={handleInvoiceUpdated}
-              onSynced={handleSynced}
-              onViewJournal={handleViewJournal}
-            />
-          </div>
+            {/* 2-Pane Split Workstation: Queue on Left, Workstation on Right */}
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden min-h-0">
+              
+              {/* Left Pane: Queue (5 cols on md, 4 cols on lg) */}
+              <div className="md:col-span-5 lg:col-span-4 h-full overflow-hidden">
+                <QueueList
+                  invoices={entityFilteredInvoices}
+                  selectedId={selectedInvoice?.id || null}
+                  onSelect={setSelectedInvoice}
+                  activeFilter={activeFilter}
+                  onFilterChange={setActiveFilter}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                />
+              </div>
 
-        </div>
+              {/* Right Pane: Detail Workstation (7 cols on md, 8 cols on lg) */}
+              <div className="md:col-span-7 lg:col-span-8 h-full overflow-hidden">
+                <DetailWorkstation
+                  invoice={selectedInvoice}
+                  accounts={accounts}
+                  onInvoiceUpdated={handleInvoiceUpdated}
+                  onSynced={handleSynced}
+                  onViewJournal={handleViewJournal}
+                />
+              </div>
+
+            </div>
+          </>
+        )}
 
       </div>
 

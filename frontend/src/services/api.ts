@@ -1,4 +1,11 @@
-import { InvoiceDocument, ChartOfAccount, AuditLog, JournalEntry, DashboardStats } from '../types';
+import type { 
+  InvoiceDocument, 
+  ChartOfAccount, 
+  AuditLog, 
+  JournalEntry, 
+  DashboardStats,
+  DailyRevenueAudit
+} from '../types';
 
 const API_BASE = '/api/invoices';
 
@@ -81,5 +88,18 @@ export const api = {
   async resetDemo(): Promise<void> {
     const res = await fetch(`${API_BASE}/reset-demo`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to reset demo data');
+  },
+
+  // Daily Revenue Audit API
+  async getRevenueAudits(): Promise<DailyRevenueAudit[]> {
+    const res = await fetch(`${API_BASE}/revenue-audits`);
+    if (!res.ok) throw new Error('Failed to fetch revenue audits');
+    return res.json();
+  },
+
+  async syncRevenueAudit(id: number): Promise<DailyRevenueAudit> {
+    const res = await fetch(`${API_BASE}/revenue-audits/${id}/sync`, { method: 'POST' });
+    if (!res.ok) throw new Error('Failed to sync revenue audit');
+    return res.json();
   }
 };

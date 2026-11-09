@@ -23,6 +23,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ChartOfAccountRepository coaRepository;
     private final AuditLogRepository auditLogRepository;
     private final JournalEntryRepository journalEntryRepository;
+    private final com.example.demo.repository.DailyRevenueAuditRepository revenueAuditRepository;
 
     @Override
     public void run(String... args) {
@@ -33,6 +34,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Transactional
     public void resetData() {
+        revenueAuditRepository.deleteAll();
         journalEntryRepository.deleteAll();
         auditLogRepository.deleteAll();
         invoiceRepository.deleteAll();
@@ -238,6 +240,47 @@ public class DataInitializer implements CommandLineRunner {
                 .performedBy("Docyt Auto-Capture")
                 .details("Faint tax line detected. Routed to General Manager review queue.")
                 .timestamp(LocalDateTime.now().minusDays(1))
+                .build());
+
+        // 7. Seed Daily Revenue Audits (Docyt's Hospitality Superpower!)
+        revenueAuditRepository.save(DailyRevenueAudit.builder()
+                .entityName("Grand Vista Hotel & Suites (140 Rooms)")
+                .auditDate(LocalDate.now().minusDays(1))
+                .roomRevenue(new BigDecimal("12450.00"))
+                .foodSales(new BigDecimal("4820.00"))
+                .beverageSales(new BigDecimal("2180.00"))
+                .salesTax(new BigDecimal("1556.00"))
+                .grossSalesTotal(new BigDecimal("21006.00"))
+                .creditCardSettlement(new BigDecimal("14200.00"))
+                .amexSettlement(new BigDecimal("3850.00"))
+                .deliveryAppPayouts(new BigDecimal("1420.00"))
+                .cashDeposit(new BigDecimal("781.50"))
+                .merchantProcessorFees(new BigDecimal("754.50"))
+                .netSettlementTotal(new BigDecimal("20251.50"))
+                .variance(BigDecimal.ZERO)
+                .isReconciled(true)
+                .isSyncedToLedger(false)
+                .notes("Friday Night Audit: Oracle Opera PMS room sales and Toast POS restaurant sales 100% balanced against bank merchant batch.")
+                .build());
+
+        revenueAuditRepository.save(DailyRevenueAudit.builder()
+                .entityName("The Harbor Bistro & Lounge")
+                .auditDate(LocalDate.now().minusDays(2))
+                .roomRevenue(BigDecimal.ZERO)
+                .foodSales(new BigDecimal("5240.00"))
+                .beverageSales(new BigDecimal("3110.00"))
+                .salesTax(new BigDecimal("668.00"))
+                .grossSalesTotal(new BigDecimal("9018.00"))
+                .creditCardSettlement(new BigDecimal("6450.00"))
+                .amexSettlement(new BigDecimal("1220.00"))
+                .deliveryAppPayouts(new BigDecimal("0.00"))
+                .cashDeposit(new BigDecimal("1050.00"))
+                .merchantProcessorFees(new BigDecimal("286.00"))
+                .netSettlementTotal(new BigDecimal("8720.00"))
+                .variance(new BigDecimal("-12.00"))
+                .isReconciled(false)
+                .isSyncedToLedger(false)
+                .notes("Discrepancy: Cash register drawer short by $12.00. Manager sign-off required.")
                 .build());
     }
 }

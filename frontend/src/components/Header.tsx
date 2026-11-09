@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 
 interface HeaderProps {
+  currentView: 'ap' | 'revenue';
+  onSelectView: (view: 'ap' | 'revenue') => void;
   onOpenUpload: () => void;
   onOpenAccounts: () => void;
   onReset: () => void;
@@ -18,6 +20,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  currentView,
+  onSelectView,
   onOpenUpload,
   onOpenAccounts,
   onReset,
@@ -57,6 +61,31 @@ export const Header: React.FC<HeaderProps> = ({
             ))}
           </select>
           <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2 top-2 pointer-events-none" />
+        </div>
+
+        {/* View Switcher: AP vs Daily Revenue Audit */}
+        <div className="hidden lg:flex items-center gap-1 bg-zinc-900 p-0.5 rounded-md border border-zinc-800 text-xs">
+          <button
+            onClick={() => onSelectView('ap')}
+            className={`px-2.5 py-1 rounded text-xs font-medium transition ${
+              currentView === 'ap'
+                ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            Accounts Payable
+          </button>
+          <button
+            onClick={() => onSelectView('revenue')}
+            className={`px-2.5 py-1 rounded text-xs font-medium transition flex items-center gap-1.5 ${
+              currentView === 'revenue'
+                ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <span>Revenue Audit</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          </button>
         </div>
       </div>
 

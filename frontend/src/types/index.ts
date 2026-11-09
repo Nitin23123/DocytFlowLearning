@@ -86,3 +86,26 @@ export interface DashboardStats {
   syncedAmount: number;
   autoCategorizationRate: number;
 }
+
+export interface DailyRevenueAudit {
+  id: number;
+  entityName: string;
+  auditDate: string;
+  roomRevenue: number;
+  foodSales: number;
+  beverageSales: number;
+  salesTax: number;
+  grossSalesTotal: number;
+  creditCardSettlement: number;
+  amexSettlement: number;
+  deliveryAppPayouts: number;
+  cashDeposit: number;
+  merchantProcessorFees: number;
+  netSettlementTotal: number;
+  variance: number;
+  isReconciled: boolean;
+  isSyncedToLedger: boolean;
+  syncTransactionId?: string;
+  syncedAt?: string;
+  notes?: string;
+}
