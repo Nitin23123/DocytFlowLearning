@@ -1,6 +1,6 @@
 import React from 'react';
 import type { InvoiceDocument } from '../types';
-import { Search, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Search, AlertTriangle, CheckCircle2, Clock, ShieldAlert } from 'lucide-react';
 
 interface QueueListProps {
   invoices: InvoiceDocument[];
@@ -21,15 +21,20 @@ export const QueueList: React.FC<QueueListProps> = ({
   searchQuery,
   onSearchChange,
 }) => {
+  // Counts for the 3 clear workflow stages
+  const pendingCount = invoices.filter((i) => !i.isSynced && !i.isDuplicateFlagged).length;
+  const alertCount = invoices.filter((i) => i.isDuplicateFlagged).length;
+  const syncedCount = invoices.filter((i) => i.isSynced).length;
+
   const tabs = [
-    { label: 'All', key: 'ALL' },
-    { label: 'Pending', key: 'PENDING' },
-    { label: 'Synced', key: 'SYNCED' },
-    { label: 'Flagged', key: 'DUPLICATE' },
+    { label: 'All Bills', key: 'ALL', count: invoices.length },
+    { label: '1. Review Queue', key: 'PENDING', count: pendingCount },
+    { label: '2. Alerts', key: 'DUPLICATE', count: alertCount, hasAlert: alertCount > 0 },
+    { label: '3. Synced', key: 'SYNCED', count: syncedCount },
   ];
 
   const filtered = invoices.filter((inv) => {
-    if (activeFilter === 'PENDING' && inv.isSynced) return false;
+    if (activeFilter === 'PENDING' && (inv.isSynced || inv.isDuplicateFlagged)) return false;
     if (activeFilter === 'SYNCED' && !inv.isSynced) return false;
     if (activeFilter === 'DUPLICATE' && !inv.isDuplicateFlagged) return false;
 
@@ -44,52 +49,60 @@ export const QueueList: React.FC<QueueListProps> = ({
     return true;
   });
 
-  const getStatusDot = (inv: InvoiceDocument) => {
-    if (inv.isDuplicateFlagged) return 'bg-rose-500';
-    if (inv.isSynced) return 'bg-emerald-500';
-    if (inv.status === 'APPROVED') return 'bg-blue-500';
-    if (inv.overallConfidence < 80) return 'bg-amber-500';
-    return 'bg-zinc-500';
-  };
-
   return (
     <div className="flex flex-col h-full border border-zinc-800 rounded-xl bg-zinc-900/30 overflow-hidden">
       
-      {/* Search & Tabs */}
-      <div className="p-3 border-b border-zinc-800 space-y-2 shrink-0 bg-zinc-950/40">
+      {/* Workflow Tabs */}
+      <div className="p-3 border-b border-zinc-800 space-y-2 shrink-0 bg-zinc-950/60">
+        
+        {/* Search */}
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2.5" />
           <input
             type="text"
-            placeholder="Filter bills by vendor or category..."
+            placeholder="Search vendor, bill #, or category..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full bg-zinc-900 border border-zinc-800 rounded-md pl-8 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700"
           />
         </div>
 
-        <div className="flex gap-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => onFilterChange(tab.key)}
-              className={`flex-1 py-1 text-center rounded text-[11px] font-medium transition ${
-                activeFilter === tab.key
-                  ? 'bg-zinc-800 text-zinc-100 font-semibold'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* 3 Workflow Stages */}
+        <div className="grid grid-cols-4 gap-1">
+          {tabs.map((tab) => {
+            const isActive = activeFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => onFilterChange(tab.key)}
+                className={`py-1.5 px-1 text-center rounded text-[11px] font-medium transition flex flex-col items-center gap-0.5 ${
+                  isActive
+                    ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-xs'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
+                }`}
+              >
+                <span className="truncate">{tab.label}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  tab.hasAlert && !isActive
+                    ? 'bg-rose-500/20 text-rose-400 font-bold'
+                    : isActive
+                    ? 'bg-zinc-700 text-zinc-200'
+                    : 'bg-zinc-850 text-zinc-500'
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
+
       </div>
 
       {/* Queue Items */}
       <div className="flex-1 overflow-y-auto divide-y divide-zinc-800/50">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-xs text-zinc-500">
-            No bills in this queue.
+            No bills in this stage.
           </div>
         ) : (
           filtered.map((inv) => {
@@ -106,7 +119,14 @@ export const QueueList: React.FC<QueueListProps> = ({
                 }`}
               >
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${getStatusDot(inv)}`} />
+                  {inv.isDuplicateFlagged ? (
+                    <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  ) : inv.isSynced ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
+                  )}
+
                   <div className="min-w-0">
                     <div className="font-medium text-xs text-zinc-100 truncate">
                       {inv.vendorName}
@@ -127,14 +147,18 @@ export const QueueList: React.FC<QueueListProps> = ({
                   <div className="text-[10px] text-zinc-400 mt-0.5">
                     {inv.dueDate ? `Due ${inv.dueDate.slice(5)}` : 'Immediate'}
                   </div>
-                  {inv.isDuplicateFlagged && (
+
+                  {inv.isDuplicateFlagged ? (
                     <span className="inline-block mt-1 text-[10px] px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-400 font-medium">
-                      Duplicate
+                      Duplicate Alert
                     </span>
-                  )}
-                  {inv.isSynced && (
+                  ) : inv.isSynced ? (
                     <span className="inline-block mt-1 text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 font-medium">
-                      Synced
+                      Synced to QBO
+                    </span>
+                  ) : (
+                    <span className="inline-block mt-1 text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-medium">
+                      Needs Review
                     </span>
                   )}
                 </div>
@@ -144,10 +168,10 @@ export const QueueList: React.FC<QueueListProps> = ({
         )}
       </div>
 
-      {/* Queue Summary Footer */}
+      {/* Footer */}
       <div className="p-2.5 border-t border-zinc-800/80 bg-zinc-950/60 text-[11px] text-zinc-500 flex justify-between items-center shrink-0">
-        <span>{filtered.length} bills in view</span>
-        <span>Click to review in workstation</span>
+        <span>Showing {filtered.length} bills</span>
+        <span>Select to review</span>
       </div>
 
     </div>

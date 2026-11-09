@@ -6,9 +6,10 @@ import {
   AlertCircle, 
   CheckCircle2, 
   ArrowUpRight, 
-  Building, 
   History,
-  FileText
+  FileText,
+  ShieldAlert,
+  ArrowRight
 } from 'lucide-react';
 
 interface DetailWorkstationProps {
@@ -83,9 +84,82 @@ export const DetailWorkstation: React.FC<DetailWorkstationProps> = ({
     }
   };
 
+  // Determine current step in 3-stage workflow
+  const currentStep = invoice.isSynced ? 3 : invoice.isDuplicateFlagged ? 2 : 2;
+
   return (
     <div className="h-full border border-zinc-800 rounded-xl bg-zinc-900/30 flex flex-col overflow-hidden">
       
+      {/* 3-Step Visual Workflow Stepper (The Core Explanation Story) */}
+      <div className="px-5 py-3 border-b border-zinc-800 bg-zinc-950/70 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-6 text-xs w-full max-w-xl">
+          
+          {/* Step 1: Ingested */}
+          <div className="flex items-center gap-2 text-zinc-200 font-medium">
+            <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px] font-bold">
+              ✓
+            </span>
+            <span>1. Capture</span>
+          </div>
+          
+          <div className="h-px w-8 bg-zinc-700" />
+
+          {/* Step 2: Code & Verify */}
+          <div className={`flex items-center gap-2 font-medium ${
+            invoice.isDuplicateFlagged 
+              ? 'text-rose-400' 
+              : invoice.isSynced 
+              ? 'text-zinc-200' 
+              : 'text-white'
+          }`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+              invoice.isDuplicateFlagged 
+                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                : invoice.isSynced
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-white text-zinc-950'
+            }`}>
+              {invoice.isSynced ? '✓' : '2'}
+            </span>
+            <span>2. Verify & Code</span>
+          </div>
+
+          <div className="h-px w-8 bg-zinc-700" />
+
+          {/* Step 3: Posted */}
+          <div className={`flex items-center gap-2 font-medium ${
+            invoice.isSynced ? 'text-emerald-400' : 'text-zinc-500'
+          }`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+              invoice.isSynced 
+                ? 'bg-emerald-500 text-zinc-950 font-bold' 
+                : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+            }`}>
+              {invoice.isSynced ? '✓' : '3'}
+            </span>
+            <span>3. Posted to QuickBooks</span>
+          </div>
+
+        </div>
+
+        {/* Status Pill */}
+        <div className="hidden sm:block">
+          {invoice.isDuplicateFlagged ? (
+            <span className="px-2.5 py-1 rounded text-[11px] font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+              Needs Controller Review
+            </span>
+          ) : invoice.isSynced ? (
+            <span className="px-2.5 py-1 rounded text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              Reconciled & Posted
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded text-[11px] font-semibold bg-zinc-800 text-zinc-300">
+              Ready for Sign-Off
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Workstation Top Action Bar */}
       <div className="p-4 border-b border-zinc-800 bg-zinc-950/40 flex items-center justify-between shrink-0">
         <div>
@@ -107,8 +181,16 @@ export const DetailWorkstation: React.FC<DetailWorkstationProps> = ({
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-md transition"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Posted ({invoice.syncTransactionId})</span>
+              <span>View Posted Entry ({invoice.syncTransactionId})</span>
               <ArrowUpRight className="w-3 h-3 text-emerald-400" />
+            </button>
+          ) : invoice.isDuplicateFlagged ? (
+            <button
+              onClick={handlePostToQuickBooks}
+              disabled={isPosting}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-rose-200 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 rounded-md transition"
+            >
+              <span>{isPosting ? 'Posting...' : 'Override Duplicate & Post'}</span>
             </button>
           ) : (
             <button
@@ -116,7 +198,8 @@ export const DetailWorkstation: React.FC<DetailWorkstationProps> = ({
               disabled={isPosting}
               className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-md transition active:scale-95 shadow-xs"
             >
-              <span>{isPosting ? 'Posting...' : 'Approve & Post to QuickBooks'}</span>
+              <span>{isPosting ? 'Posting to QuickBooks...' : 'Approve & Post to QuickBooks'}</span>
+              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
           )}
         </div>
@@ -127,10 +210,10 @@ export const DetailWorkstation: React.FC<DetailWorkstationProps> = ({
         
         {/* Duplicate Conflict Banner */}
         {invoice.isDuplicateFlagged && (
-          <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5">
+            <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <div>
-              <div className="font-semibold text-rose-300">Potential Duplicate Bill</div>
+              <div className="font-semibold text-rose-300">Duplicate Bill Detected (Docyt Risk Check)</div>
               <div className="text-zinc-400 mt-0.5 leading-relaxed">
                 {invoice.duplicateReason || 'A bill with this invoice number already exists in your ledger.'}
               </div>
@@ -144,8 +227,10 @@ export const DetailWorkstation: React.FC<DetailWorkstationProps> = ({
           {/* Left Column: General Ledger Coding */}
           <div className="p-4 rounded-lg bg-zinc-950/60 border border-zinc-800 space-y-3">
             <div className="font-semibold text-zinc-300 flex items-center justify-between">
-              <span>General Ledger Coding</span>
-              <span className="text-[11px] font-mono text-zinc-500">{glAccountCode}</span>
+              <span>Step 2: Account Coding</span>
+              <span className="text-[11px] font-mono text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                GL: {glAccountCode}
+              </span>
             </div>
 
             <div>
@@ -200,7 +285,7 @@ export const DetailWorkstation: React.FC<DetailWorkstationProps> = ({
           <div className="p-4 rounded-lg bg-zinc-950/60 border border-zinc-800 flex flex-col justify-between">
             <div>
               <div className="font-semibold text-zinc-300 flex items-center justify-between mb-2">
-                <span>Continuous Close Ledger Preview</span>
+                <span>Step 3: Continuous Ledger Preview</span>
                 <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
                   <Check className="w-3 h-3" /> Balanced
                 </span>
@@ -238,7 +323,7 @@ export const DetailWorkstation: React.FC<DetailWorkstationProps> = ({
 
             <div className="text-[11px] text-zinc-500 pt-3 border-t border-zinc-800/60 mt-3 flex justify-between">
               <span>Standard: GAAP Accrual</span>
-              <span>Idempotent Sync</span>
+              <span>Idempotent Sync Key</span>
             </div>
           </div>
 
